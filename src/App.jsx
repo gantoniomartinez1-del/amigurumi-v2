@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const SIZES = [
   { label:"Mini (~8cm)",     hook:"2.0-2.5mm", magic:6 },
@@ -64,17 +64,16 @@ export default function App() {
 
     try {
       // Llamada a tu función de Netlify
-      const response = await fetch("/api/generate", ...), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          image: imageBase64,
-          size: selectedSize,
-          hook: selectedHook
-        }),
-      });
+     const genAI = new GoogleGenerativeAI("AIzaSyCECMpMvQFRH7SGoDn9yRkakOFgxLIwAJ8");
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const imageData = imageBase64.split(",")[1];
+
+    const result = await model.generateContent([
+      `Eres un experto en amigurumis. Crea un patrón detallado para tamaño ${selectedSize} con gancho ${selectedHook} basado en la imagen adjunta.`,
+      { inlineData: { data: imageData, mimeType: "image/jpeg" } },
+    ]);
+
+    const data = { pattern: result.response.text() };
 
       if (!response.ok) {
         throw new Error("Error en la respuesta del servidor");
