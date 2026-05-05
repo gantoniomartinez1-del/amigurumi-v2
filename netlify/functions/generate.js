@@ -1,40 +1,41 @@
-exports.handler = async function(event) {
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS"
-      },
-      body: ""
-    };
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+export const handler = async (event) => {
+  // Solo permitimos peticiones POST
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Metodo no permitido" };
   }
 
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
-  }
+  // 1. Configurar la API Key de Google (la que pondremos en Netlify)
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: event.body,
-    });
-    const data = await response.json();
+    const { image, size, hook } = JSON.parse(event.body);
+
+    // 2. Extraer la base64 de la imagen (quitando el encabezado de data:image)
+    const imageData = image.split(",")[1];
+
+    const prompt = `Eres un experto en diseño de amigurumis. 
+    Analiza la imagen adjunta y crea un patrón para un tamaño ${size} usando un gancho de ${hook}.
+    Escribe el patrón paso a paso en español, incluyendo materiales, abreviaturas y vueltas detalladas.`;
+
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { data: imageData, mimeType: "image/jpeg" } },
+    ]);
+
+    const response = await result.response;
+    
     return {
-      statusCode: response.status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      },
-      body: JSON.stringify(data),
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pattern: response.text() }),
     };
-  } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+  } catch (error) {
+    return { 
+      statusCode: 500, 
+      body: JSON.stringify({ error: "Error al generar el patrón con Gemini" }) 
+    };
   }
 };
