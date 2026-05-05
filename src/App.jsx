@@ -54,25 +54,48 @@ export default function App() {
     try {
       setLoadMsg("Generando patrón con IA...");
  const generarPatron = async () => {
-  setLoading(true);
-  try {
-    const response = await fetch("/.netlify/functions/generate", {
-      method: "POST",
-      body: JSON.stringify({
-        image: imageBase64, // Tu imagen en base64
-        size: selectedSize, // El tamaño (Mini, Grande, etc)
-        hook: selectedHook   // El gancho elegido
-      }),
-    });
+    if (!imageBase64) {
+      alert("Por favor, sube una foto primero.");
+      return;
+    }
 
-    const data = await response.json();
-    setPattern(data.pattern);
-  } catch (err) {
-    console.error("Error:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    setLoadMsg("Analizando imagen con Gemini...");
+
+    try {
+      // Llamada a tu función de Netlify
+      const response = await fetch("/.netlify/functions/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image: imageBase64,
+          size: selectedSize,
+          hook: selectedHook
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error en la respuesta del servidor");
+      }
+
+      const data = await response.json();
+
+      if (data.pattern) {
+        setPattern(data.pattern);
+        setLoadMsg("¡Patrón generado con éxito!");
+      } else {
+        throw new Error("No se recibió un patrón válido");
+      }
+
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Hubo un problema al generar el patrón. Revisa la consola.");
+    } finally {
+      setLoading(false);
+    }
+  };
       setLoadMsg("Procesando respuesta...");
       const data = await res.json();
       const text = (data.content || []).map(b => b.text || "").join("");
