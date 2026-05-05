@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Método no permitido");
 
-  const genAI = new GoogleGenerativeAI("AIzaSyB4MoUSWcp-6qFzcWLdecu_ZwB37B1hQk4");
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   try {
