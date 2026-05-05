@@ -53,18 +53,26 @@ export default function App() {
     setLoadMsg("Analizando imagen...");
     try {
       setLoadMsg("Generando patrón con IA...");
-      const res = await fetch("/.netlify/functions/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 8000,
-          messages: [{ role: "user", content: [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imgB64 } },
-            { type: "text", text: buildPrompt() }
-          ]}]
-        })
-      });
+ const generarPatron = async () => {
+  setLoading(true);
+  try {
+    const response = await fetch("/.netlify/functions/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        image: imageBase64, // Tu imagen en base64
+        size: selectedSize, // El tamaño (Mini, Grande, etc)
+        hook: selectedHook   // El gancho elegido
+      }),
+    });
+
+    const data = await response.json();
+    setPattern(data.pattern);
+  } catch (err) {
+    console.error("Error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
       setLoadMsg("Procesando respuesta...");
       const data = await res.json();
       const text = (data.content || []).map(b => b.text || "").join("");
